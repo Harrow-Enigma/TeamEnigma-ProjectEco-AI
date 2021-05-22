@@ -1,4 +1,8 @@
 """
+Project ECO AI Model
+
+---------------------------------------------------------
+
 Copyright 2021 YIDING SONG
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,7 +36,7 @@ mpl.rcParams['xtick.color'] = 'black'
 mpl.rcParams['ytick.color'] = 'black'
 
 # Input dimensions
-INP_DIM = 12
+INP_DIM = 3
 
 # The number of past time steps the model will be given data from
 HIST_LEN = 10
@@ -86,7 +90,7 @@ raw_data = np.array(raw_data, np.float32)
 
 print(raw_data.shape)
 
-"""### Data Preprocessing"""
+"""Data Preprocessing"""
 
 def standardize(arr):
   m = arr.mean(0)
@@ -176,6 +180,40 @@ json.dump({
     'labels': LAB
 }, open('data_aux.json', 'w'))
 
+"""Pre-Training Data"""
+
+zip_path = tf.keras.utils.get_file(
+    origin='https://storage.googleapis.com/tensorflow/tf-keras-datasets/jena_climate_2009_2016.csv.zip',
+    fname='jena_climate_2009_2016.csv.zip',
+    extract=True)
+csv_path, _ = os.path.splitext(zip_path)
+
+df = pd.read_csv(csv_path)
+
+df.head()
+
+for e, i in enumerate(list(df.columns)):
+    print(e, '\t', i)
+
+pre_raw = df.iloc[:, [2, 5, 10]].to_numpy()
+pre_data, pre_mean, pre_std = standardize(pre_raw)
+print(pre_data.shape)
+
+assert pre_data.shape[1] == INP_DIM
+
+pre_dataset, pre_dataset_size, _, _ = window(
+    pre_data, HIST_LEN, FEAT, PRED_LEN, LAB, RET_SQN
+)
+
+pre_ratio = 9.5/10
+pre_train_no = int(pre_ratio * pre_dataset_size)
+pre_test_no = pre_dataset_size - pre_train_no
+
+pre_train_dataset = pre_dataset.take(pre_train_no)
+pre_test_dataset = pre_dataset.skip(pre_train_no)
+pre_train_dataset = pre_train_dataset.batch(BATCH_SZ)
+pre_test_dataset = pre_test_dataset.batch(BATCH_SZ)
+
 """Building the model"""
 
 class ResidualForecastModel(tf.keras.Model):
@@ -228,19 +266,26 @@ class ResidualForecastModel(tf.keras.Model):
     x = self.out(x)
     return self.cumulative_sum(inp, x)
   
+  def predict(self, inp):
+    pred = self.call(inp)
+    batch_size = tf.shape(pred)[0]
+    return tf.reshape(pred[:, -1, :],
+                      [batch_size, self.pred_len, self.lab_len])
+  
   def functional(self):
     inputs = tf.keras.Input(self.inp_shape)
     outputs = self.call(inputs)
     return tf.keras.Model(inputs, outputs, name=self.name)
 
 sample_model = ResidualForecastModel(
-    feature_shape, REL_LAB, PRED_LEN, RET_SQN, 256
+    feature_shape, REL_LAB, PRED_LEN, RET_SQN, RNN_UNITS
 )
 
-sample_pred = sample_model(tf.expand_dims(sample_features, 0))
-print('Sample prediction of shape {}:\n{}'.format(
-    sample_pred.shape, sample_pred
-))
+for i in pre_dataset.take(1):
+  sample_pred = sample_model(tf.expand_dims(i[0], 0))
+  print('Sample prediction of shape {}:\n{}'.format(
+      sample_pred.shape, sample_pred
+  ))
 
 """Model Visualization"""
 
@@ -262,6 +307,17 @@ model.compile(optimizer = optim, loss = mse)
 
 """Defining training checkpoints"""
 
+pre_checkpoint_dir = './ProjectECO_PreTraining_Checkpoints/'
+
+if not os.path.exists(pre_checkpoint_dir):
+  os.mkdir(pre_checkpoint_dir)
+
+pre_checkpoint_prefix = os.path.join(pre_checkpoint_dir, "ckpt_{epoch}")
+
+pre_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+    filepath = pre_checkpoint_prefix,
+    save_weights_only = True)
+
 checkpoint_dir = './ProjectECO_Checkpoints/'
 
 if not os.path.exists(checkpoint_dir):
@@ -275,8 +331,19 @@ checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
 
 """TRAINING!!"""
 
-EPOCHS = 100
-model.fit(train_dataset, epochs = EPOCHS, callbacks=[checkpoint_callback])
+## Pretraining
+model.fit(pre_train_dataset,
+          epochs = 4,
+          callbacks=[pre_checkpoint_callback]
+         )
+
+model.evaluate(pre_test_dataset)
+
+# Actual training
+model.fit(train_dataset,
+          epochs = 50,
+          callbacks=[checkpoint_callback]
+         )
 
 model.evaluate(test_dataset)
 
