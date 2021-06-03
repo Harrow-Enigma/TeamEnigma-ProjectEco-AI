@@ -21,3 +21,6 @@ The AI model is built using tensorflow
 
 ## Explaination
 A more detailed explaination can be found [here](https://github.com/Harrow-Enigma/minutes/blob/main/20210327%20-%20Team%20Enigma%20Planning%20Meeting%20Summary.md#the-ecoproject).
+
+## Other repositories
+[Webserver Repo](https://github.com/DylanK46/TeamEngima-ProjectEco-Webserver)
