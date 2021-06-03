@@ -244,7 +244,6 @@ class ResidualForecastModel(tf.keras.Model):
     sum_matrix = tf.reshape(base_sum, [
         batch_size, self.sqn_len, 1, self.lab_len
     ])
-    batchSz = pred.shape[0]
     pred = tf.reshape(pred, [
       batch_size, self.sqn_len, self.pred_len, self.lab_len
     ])
