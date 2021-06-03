@@ -73,7 +73,7 @@ REL_LAB = [mapping[i] for i in LAB]
 def dict2date(data_dict):
   return dt.strptime(data_dict['DATE'], '%Y-%m-%dT%H:%M:%S.%f%z')
 
-api_url = 'https://projecteco-webserver.dylankainth.repl.co/api/rest/ai/v1'
+api_url = 'https://projecteco.ml/api/v1/rest/ai'
 response = requests.get(api_url)
 json_data = response.json()
 json_data = sorted(json_data, key = dict2date)
