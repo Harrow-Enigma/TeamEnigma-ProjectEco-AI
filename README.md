@@ -8,9 +8,9 @@ Project Eco is the first project of Team Enigma, the AI team of [Harrow School](
 
 Project Eco consists of four main parts;
 
- - **A webserver (and by extension, a website)**
+ - A webserver (and by extension, a website)
  - Sensors on ESP-32 boards
- - An AI server, with Pytorch
+ - **An AI server, with Tensorflow**
  - A set of forms
  
 
