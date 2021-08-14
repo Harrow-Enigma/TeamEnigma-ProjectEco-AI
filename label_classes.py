@@ -13,6 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+import numpy as np
+
 class Label(object):
   def __init__(self, _name, _dtype, _fallback, _key=None):
     self.name = _name
