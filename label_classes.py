@@ -16,7 +16,7 @@ limitations under the License.
 import numpy as np
 
 class Label(object):
-  def __init__(self, _name, _dtype, _fallback, _key=None):
+  def __init__(self, _name, _dtype, _fallback, _key=None, _unit=None):
     self.name = _name
     self.dtype = _dtype
     self.fallback = _fallback
@@ -24,11 +24,22 @@ class Label(object):
       self.key = _name
     else:
       self.key = _key
+    self.unit = _unit
   
   def __str__(self):
-    return 'Label "{}" of "{}" on key "{}", defaults to {}'.format(
-        self.name, self.dtype, self.key, self.fallback
+    return 'Label "{}" of "{}" on key "{}", defaults to {}; unit: {}'.format(
+        self.name, self.dtype, self.key, self.fallback, self.unit
     )
+  
+  def serialize(self):
+    return {
+      'name': self.name,
+      'dtype': self.dtype,
+      'fallback': self.fallback,
+      'key': self.key,
+      'unit': self.unit,
+      'labelType': 'Label'
+    }
 
 class FloatLabel(Label):
   def __init__(self, _name, **kwargs):
@@ -39,6 +50,11 @@ class FloatLabel(Label):
 
   def rev_call(self, val):
     return val
+  
+  def serialize(self):
+    obj = super().serialize()
+    obj['labelType'] = 'FloatLabel'
+    return obj
 
 class IntClass(Label):
   def __init__(self, _name, **kwargs):
@@ -49,6 +65,11 @@ class IntClass(Label):
 
   def rev_call(self, val):
     return round(val)
+  
+  def serialize(self):
+    obj = super().serialize()
+    obj['labelType'] = 'IntClass'
+    return obj
 
 class IntClassMap(Label):
   def __init__(self, _name, _map, **kwargs):
@@ -64,4 +85,11 @@ class IntClassMap(Label):
       return self.rev_map[round(val)]
     except:
       return None
+
+  def serialize(self):
+    obj = super().serialize()
+    obj['labelType'] = 'IntClassMap'
+    obj['fwd_map'] = self.fwd_map
+    obj['rev_map'] = self.rev_map
+    return obj
 
