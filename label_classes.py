@@ -57,8 +57,9 @@ class FloatLabel(Label):
     return obj
 
 class IntClass(Label):
-  def __init__(self, _name, **kwargs):
+  def __init__(self, _name, _size, **kwargs):
     super().__init__(_name, int, -1, **kwargs)
+    self.size = _size
   
   def fwd_call(self, val):
     return round(val)
@@ -69,6 +70,7 @@ class IntClass(Label):
   def serialize(self):
     obj = super().serialize()
     obj['labelType'] = 'IntClass'
+    obj['size'] = self.size
     return obj
 
 class IntClassMap(Label):
